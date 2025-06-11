@@ -27,6 +27,6 @@ export const getDocumentProcedure = withAccessControl
         },
       });
 
-      return getPresignedGetUrl(data.bucket.key);
+      return getPresignedGetUrl(data.bucket.key, false);
     },
   );

@@ -66,7 +66,7 @@ export const eSignCompletePDFWorker = defineWorker(config, async (job) => {
     });
   });
 
-  const file = await getPresignedGetUrl(bucketData.key);
+  const file = await getPresignedGetUrl(bucketData.key, false);
 
   await eSignConfirmationEmailJob.bulkEmit(
     recipients.map((recipient) => ({

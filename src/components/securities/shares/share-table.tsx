@@ -250,7 +250,7 @@ export const columns: ColumnDef<Share[number]>[] = [
       const documents = row?.original?.documents;
 
       const openFileOnTab = async (key: string) => {
-        const fileUrl = await getPresignedGetUrl(key);
+        const fileUrl = await getPresignedGetUrl(key, false);
         window.open(fileUrl.url, "_blank");
       };
 

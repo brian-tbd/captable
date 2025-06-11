@@ -116,6 +116,7 @@ export class EsignService {
       };
     },
   ) {
+    console.log("Emitting esign.generate-pdf for template:", options.templateId);
     await eSignPdfJob.emit(
       {
         ...options,

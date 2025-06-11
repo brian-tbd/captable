@@ -7,33 +7,33 @@ import {
 
 /**
  * usage
- * ```js
- * import { uploadFile } from '@/common/uploads'
+ * ```ts
+ * import { uploadFile } from "@/common/uploads";
  *
  * const handleUpload = async (file: File) => {
  *   const { uploadKey } = await uploadFile(file);
- *
- *   // save to the database
  *   saveDB({ uploadKey });
  * };
  * ```
  */
 
 export const uploadFile = async (
-  file: File,
-  options: Pick<
-    getPresignedUrlOptions,
-    "expiresIn" | "keyPrefix" | "identifier"
-  >,
-  bucketMode: "publicBucket" | "privateBucket" = "privateBucket",
+    file: File,
+    options: Pick<
+        getPresignedUrlOptions,
+        "expiresIn" | "keyPrefix" | "identifier"
+    >,
+    bucketMode: "publicBucket" | "privateBucket" = "privateBucket"
 ) => {
   const { url, key, bucketUrl } = await getPresignedPutUrl({
     contentType: file.type,
     fileName: file.name,
     bucketMode,
     ...options,
-  });
+  }, false);
+
   const body = await file.arrayBuffer();
+
   const res = await fetch(url, {
     method: "PUT",
     headers: {
@@ -41,9 +41,10 @@ export const uploadFile = async (
     },
     body,
   });
+
   if (!res.ok) {
     throw new Error(
-      `Failed to upload file "${file.name}", failed with status code ${res.status}`,
+        `Failed to upload file "${file.name}", failed with status code ${res.status}`
     );
   }
 
@@ -51,7 +52,7 @@ export const uploadFile = async (
   let fileUrl = bucketUrl;
 
   const uploadDomain =
-    process.env.NEXT_PUBLIC_UPLOAD_DOMAIN || env.NEXT_PUBLIC_UPLOAD_DOMAIN;
+      process.env.NEXT_PUBLIC_UPLOAD_DOMAIN || env.NEXT_PUBLIC_UPLOAD_DOMAIN;
 
   if (bucketMode === "publicBucket" && uploadDomain) {
     fileUrl = `${uploadDomain}/${key}`;
@@ -69,7 +70,7 @@ export const uploadFile = async (
 export type TUploadFile = Awaited<ReturnType<typeof uploadFile>>;
 
 export const getFileFromS3 = async (key: string) => {
-  const { url } = await getPresignedGetUrl(key);
+  const { url } = await getPresignedGetUrl(key, false);
 
   const response = await fetch(url, {
     method: "GET",
@@ -77,13 +78,10 @@ export const getFileFromS3 = async (key: string) => {
 
   if (!response.ok) {
     throw new Error(
-      `Failed to get file "${key}", failed with status code ${response.status}`,
+        `Failed to get file "${key}", failed with status code ${response.status}`
     );
   }
 
   const buffer = await response.arrayBuffer();
-
-  const binaryData = new Uint8Array(buffer);
-
-  return binaryData;
+  return new Uint8Array(buffer);
 };

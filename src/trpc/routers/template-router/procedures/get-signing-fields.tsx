@@ -69,7 +69,7 @@ export const getSigningFieldsProcedure = withoutAuth
       return { bucket, fields, status };
     });
 
-    const { key, url } = await getPresignedGetUrl(bucket.key);
+    const { key, url } = await getPresignedGetUrl(bucket.key, false);
 
     return {
       fields,

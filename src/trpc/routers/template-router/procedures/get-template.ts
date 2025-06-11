@@ -59,7 +59,7 @@ export const getTemplateProcedure = withAuth
       return { template };
     });
 
-    const { key, url } = await getPresignedGetUrl(template.bucket.key);
+    const { key, url } = await getPresignedGetUrl(template.bucket.key, false);
 
     return {
       fields: template.fields,

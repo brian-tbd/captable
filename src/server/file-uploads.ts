@@ -11,44 +11,28 @@ import {
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import slugify from "@sindresorhus/slugify";
+import {createS3Client, createServerS3Client} from "@/server/createServerS3Client";
 
-const region = env.UPLOAD_REGION;
-const endpoint = env.UPLOAD_ENDPOINT;
-const accessKeyId = env.UPLOAD_ACCESS_KEY_ID;
-const secretAccessKey = env.UPLOAD_SECRET_ACCESS_KEY;
-const hasCredentials = accessKeyId && secretAccessKey;
 const PrivateBucket = env.UPLOAD_BUCKET_PRIVATE;
 const PublicBucket = env.UPLOAD_BUCKET_PUBLIC;
 
-const S3 = new S3Client({
-  region,
-  endpoint,
-  credentials: hasCredentials
-    ? {
-        secretAccessKey,
-        accessKeyId,
-      }
-    : undefined,
-});
-
 export type TypeKeyPrefixes =
-  | "new-safes"
-  | "existing-safes"
-  | "signed-esign-doc"
-  | "unsigned-esign-doc"
-  | "stock-option-docs"
-  | "company-logos"
-  | "profile-avatars"
-  | "generic-documents"
-  | "shares-docs"
-  | `data-room/${string}`;
+    | "new-safes"
+    | "existing-safes"
+    | "signed-esign-doc"
+    | "unsigned-esign-doc"
+    | "stock-option-docs"
+    | "company-logos"
+    | "profile-avatars"
+    | "generic-documents"
+    | "shares-docs"
+    | `data-room/${string}`;
 
 export interface getPresignedUrlOptions {
   contentType: string;
   expiresIn?: number;
   fileName: string;
   keyPrefix: TypeKeyPrefixes;
-  // should be companyPublicId or memberId or userId
   identifier: string;
   bucketMode: "privateBucket" | "publicBucket";
 }
@@ -56,18 +40,16 @@ export interface getPresignedUrlOptions {
 const TEN_MINUTES_IN_SECONDS = 10 * 60;
 
 export const getPresignedPutUrl = async ({
-  contentType,
-  expiresIn,
-  fileName,
-  keyPrefix,
-  identifier,
-  bucketMode,
-}: getPresignedUrlOptions) => {
+                                           contentType,
+                                           expiresIn,
+                                           fileName,
+                                           keyPrefix,
+                                           identifier,
+                                           bucketMode,
+                                         }: getPresignedUrlOptions, serverClient = true) => {
   const { name, ext } = path.parse(fileName);
 
-  const Key = `${identifier}/${keyPrefix}-${slugify(name)}-${customId(
-    12,
-  )}${ext}`;
+  const Key = `${identifier}/${keyPrefix}-${slugify(name)}-${customId(12)}${ext}`;
 
   const putObjectCommand = new PutObjectCommand({
     Bucket: bucketMode === "privateBucket" ? PrivateBucket : PublicBucket,
@@ -76,36 +58,52 @@ export const getPresignedPutUrl = async ({
     ACL: bucketMode === "privateBucket" ? "private" : "public-read",
   });
 
-  const url: string = await getSignedUrl(S3, putObjectCommand, {
+  let s3Client = createServerS3Client()
+  if (!serverClient) {
+      s3Client = createS3Client()
+  }
+
+  const url = await getSignedUrl(s3Client, putObjectCommand, {
     expiresIn: expiresIn ?? TEN_MINUTES_IN_SECONDS,
   });
 
   const bucketUrl = new URL(url);
   bucketUrl.search = "";
+  console.log("Get signed URL that was fetched", url)
 
   return { url, key: Key, bucketUrl: bucketUrl.toString() };
 };
 
-export const getPresignedGetUrl = async (key: string) => {
-  const getObjectCommand = new GetObjectCommand({
+export const getPresignedGetUrl = async (key: string, serverClient = true) => {
+    let s3Client = createServerS3Client()
+    if (!serverClient) {
+        s3Client = createS3Client()
+    }
+    const getObjectCommand = new GetObjectCommand({
     Bucket: PrivateBucket,
     Key: key,
-    // ResponseContentDisposition: `attachment; filename="${key}"`,
     ResponseContentDisposition: "inline",
   });
 
-  const url = await getSignedUrl(S3, getObjectCommand, {
+  const url = await getSignedUrl(s3Client, getObjectCommand, {
     expiresIn: TEN_MINUTES_IN_SECONDS,
   });
+
+  console.log("Presigned URL that was fetched", url)
 
   return { key, url };
 };
 
-export const deleteBucketFile = (key: string) => {
-  return S3.send(
-    new DeleteObjectCommand({
-      Bucket: process.env.UPLOAD_BUCKET_PRIVATE,
-      Key: key,
-    }),
+export const deleteBucketFile = (key: string, serverClient = true) => {
+    let s3Client = createServerS3Client()
+    if (!serverClient) {
+        s3Client = createS3Client()
+    }
+
+  return s3Client.send(
+      new DeleteObjectCommand({
+        Bucket: PrivateBucket,
+        Key: key,
+      })
   );
 };

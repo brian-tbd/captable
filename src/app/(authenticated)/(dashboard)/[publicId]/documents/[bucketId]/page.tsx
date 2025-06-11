@@ -31,7 +31,7 @@ const DocumentPreview = async ({
   }
 
   const file = document.bucket;
-  const remoteFile = await getPresignedGetUrl(file.key);
+  const remoteFile = await getPresignedGetUrl(file.key, false);
 
   return (
     <Fragment>
