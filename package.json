@@ -93,7 +93,7 @@
     "next": "^14.2.4",
     "next-auth": "^4.24.7",
     "next-nprogress-bar": "^2.3.13",
-    "nodemailer": "^6.9.14",
+    "nodemailer": "^6.10.1",
     "papaparse": "^5.4.1",
     "pdf-lib": "^1.17.1",
     "pg-boss": "^10.1.1",
